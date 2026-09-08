@@ -11,6 +11,17 @@ import { useDragList } from './dragList';
 
 const ICON_CHOICES = ['💼', '🎨', '📚', '👤', '💰', '🏠', '🎯', '⚡', '🧠', '🩺', '✈️', '📁'];
 
+// Palette a main category can be tinted with. First entry matches the app's
+// default green so existing categories look unchanged.
+const COLOR_CHOICES: { name: string; value: string }[] = [
+  { name: 'Green', value: '#2a835f' },
+  { name: 'Teal', value: '#12544f' },
+  { name: 'Sky', value: '#3b82f6' },
+  { name: 'Violet', value: '#7c5cff' },
+  { name: 'Amber', value: '#d98a3d' },
+  { name: 'Rose', value: '#d9566f' },
+];
+
 interface Renaming {
   kind: 'main' | 'sub';
   id: string;
@@ -72,6 +83,9 @@ export function CategoryTree({ mobileActive }: { mobileActive: boolean }) {
                     ICON_CHOICES[(ICON_CHOICES.indexOf(main.icon) + 1) % ICON_CHOICES.length];
                   dispatch({ type: 'update', kind: 'main', id: main.id, patch: { icon: next } });
                 }}
+                onSetColor={(color) =>
+                  dispatch({ type: 'update', kind: 'main', id: main.id, patch: { color } })
+                }
                 renaming={renaming}
                 setRenaming={setRenaming}
                 mainDragProps={mainDrag.getItemProps(main.id)}
@@ -107,6 +121,7 @@ interface MainNodeProps {
   onMoveMain: (dir: -1 | 1) => void;
   onMoveSub: (id: string, targetId: string | null) => void;
   onChangeIcon: () => void;
+  onSetColor: (color: string) => void;
   renaming: Renaming | null;
   setRenaming: (value: Renaming | null) => void;
   mainDragProps: Record<string, unknown> & { className?: string };
@@ -127,6 +142,7 @@ function MainNode({
   onMoveMain,
   onMoveSub,
   onChangeIcon,
+  onSetColor,
   renaming,
   setRenaming,
   mainDragProps,
@@ -184,6 +200,7 @@ function MainNode({
           aria-selected={mainSelected}
           tabIndex={0}
           className={`tree__main drag-handle${mainDragProps.className ?? ''}`}
+          style={mainSelected ? { background: main.color, borderColor: main.color } : undefined}
           onClick={() => onSelectMain(main.id)}
           onKeyDown={(event) => {
             if (event.key === 'Enter' || event.key === ' ') {
@@ -198,6 +215,7 @@ function MainNode({
             }
           }}
         >
+          <span className="tree__color" style={{ background: main.color }} aria-hidden="true" />
           <span className="tree__icon" aria-hidden="true">
             {main.icon}
           </span>
@@ -209,6 +227,11 @@ function MainNode({
               items={[
                 { label: 'Rename', icon: 'edit', hint: 'F2', onSelect: () => setRenaming({ kind: 'main', id: main.id }) },
                 { label: 'Change icon', icon: 'tag', onSelect: onChangeIcon },
+                ...COLOR_CHOICES.map((c) => ({
+                  label: c.name,
+                  swatch: c.value,
+                  onSelect: () => onSetColor(c.value),
+                })),
                 { label: 'Move up', icon: 'left', hint: 'Alt ↑', onSelect: () => onMoveMain(-1) },
                 { label: 'Move down', icon: 'right', hint: 'Alt ↓', onSelect: () => onMoveMain(1) },
                 { label: 'Delete', icon: 'trash', danger: true, onSelect: () => onRemove('main', main.id, main.name) },
