@@ -257,39 +257,39 @@ export function TaskForm({
         </div>
       </fieldset>
 
-      <div className="grid-2">
-        <div className="field">
-          <label className="field__label" htmlFor="task-tags">
-            Tags
-          </label>
-          <input
-            id="task-tags"
-            className="input"
-            placeholder="design, urgent"
-            value={tagText}
-            onChange={(event) => {
-              setTagText(event.target.value);
-              patch({
-                tags: event.target.value
-                  .split(',')
-                  .map((tag) => tag.trim())
-                  .filter(Boolean),
-              });
-            }}
-          />
-        </div>
-        <div className="field">
-          <label className="field__label" htmlFor="task-notes">
-            Notes
-          </label>
-          <input
-            id="task-notes"
-            className="input"
-            placeholder="Optional detail"
-            value={draft.description}
-            onChange={(event) => patch({ description: event.target.value })}
-          />
-        </div>
+      <div className="field">
+        <label className="field__label" htmlFor="task-tags">
+          Tags
+        </label>
+        <input
+          id="task-tags"
+          className="input"
+          placeholder="design, urgent"
+          value={tagText}
+          onChange={(event) => {
+            setTagText(event.target.value);
+            patch({
+              tags: event.target.value
+                .split(',')
+                .map((tag) => tag.trim())
+                .filter(Boolean),
+            });
+          }}
+        />
+      </div>
+      <div className="field">
+        <label className="field__label" htmlFor="task-notes">
+          Notes
+        </label>
+        {/* Full-width, multi-line so all the note text is visible at once. */}
+        <textarea
+          id="task-notes"
+          className="textarea"
+          rows={3}
+          placeholder="Optional detail — write as much as you need…"
+          value={draft.description}
+          onChange={(event) => patch({ description: event.target.value })}
+        />
       </div>
 
       <div className="composer__actions">
