@@ -5,6 +5,8 @@ import { Icon, type IconName } from './Icon';
 export interface MenuItem {
   label: string;
   icon?: IconName;
+  /** Renders a colour dot instead of an icon (used by the colour picker). */
+  swatch?: string;
   hint?: string;
   danger?: boolean;
   onSelect: () => void;
@@ -135,7 +137,11 @@ export function Menu({ items, label, className, children }: MenuProps) {
                   item.onSelect();
                 }}
               >
-                {item.icon && <Icon name={item.icon} size={14} />}
+                {item.swatch ? (
+                  <span className="menu__swatch" style={{ background: item.swatch }} />
+                ) : (
+                  item.icon && <Icon name={item.icon} size={14} />
+                )}
                 <span>{item.label}</span>
                 {item.hint && <span className="menu__hint">{item.hint}</span>}
               </button>
