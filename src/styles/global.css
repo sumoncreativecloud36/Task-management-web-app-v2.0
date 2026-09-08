@@ -708,6 +708,19 @@ p {
   box-shadow: var(--shadow-sm);
 }
 
+/* Persistent colour dot so each main category's colour reads even unselected. */
+.tree__color {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 99px;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, #000 22%, transparent);
+}
+.tree__main[aria-selected='true'] .tree__color {
+  background: var(--on-brand) !important;
+  box-shadow: none;
+}
+
 .tree__icon {
   flex: none;
   width: 18px;
@@ -930,11 +943,16 @@ p {
 .textarea:hover {
   border-color: var(--border);
 }
+/* A single accent border marks focus — no extra ring/outline stacked on it. */
 .input:focus,
 .select:focus,
-.textarea:focus {
+.textarea:focus,
+.input:focus-visible,
+.select:focus-visible,
+.textarea:focus-visible {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--primary-ring);
+  box-shadow: none;
+  outline: none;
 }
 .select {
   appearance: none;
@@ -2045,6 +2063,13 @@ p {
   margin-left: auto;
   font-size: 11px;
   color: var(--text-faint);
+}
+.menu__swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 5px;
+  flex: none;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, #000 25%, transparent);
 }
 
 /* --------------------------------------------------------------- toast --- */
