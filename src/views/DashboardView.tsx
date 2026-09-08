@@ -152,7 +152,7 @@ export function DashboardView() {
           </p>
         </div>
 
-        <div className="card">
+        <div className="card" style={{ order: -1 }}>
           <div className="card__head">
             <h2 className="card__title">Today&apos;s tasks</h2>
             <button type="button" className="btn btn--quiet btn--sm" onClick={() => setView('today')}>
@@ -233,7 +233,7 @@ export function DashboardView() {
           )}
         </div>
 
-        <div className="card">
+        <div className="card" style={{ order: -1 }}>
           <div className="card__head">
             <h2 className="card__title">Recent activity</h2>
           </div>
