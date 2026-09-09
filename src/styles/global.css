@@ -708,19 +708,6 @@ p {
   box-shadow: var(--shadow-sm);
 }
 
-/* Persistent colour dot so each main category's colour reads even unselected. */
-.tree__color {
-  flex: none;
-  width: 8px;
-  height: 8px;
-  border-radius: 99px;
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, #000 22%, transparent);
-}
-.tree__main[aria-selected='true'] .tree__color {
-  background: var(--on-brand) !important;
-  box-shadow: none;
-}
-
 .tree__icon {
   flex: none;
   width: 18px;
@@ -778,21 +765,11 @@ p {
   background: var(--surface-hover);
   color: var(--text);
 }
+/* Subcategories carry no highlight box — the active one is shown only by a
+   bolder, brighter label, keeping the column calm. */
 .tree__sub[aria-selected='true'] {
-  background: var(--primary-soft);
   color: var(--text);
   font-weight: 600;
-}
-.tree__sub[aria-selected='true']::before {
-  content: '';
-  position: absolute;
-  left: -11px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 2px;
-  height: 15px;
-  border-radius: 2px;
-  background: var(--accent);
 }
 
 .tree__sub-name {
