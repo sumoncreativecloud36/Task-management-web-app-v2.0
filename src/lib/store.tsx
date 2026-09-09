@@ -61,30 +61,10 @@ export function DataProvider({
   const pushTimer = useRef<number | null>(null);
   const pushing = useRef(false);
 
-  // The background pull must finish before write-through starts, so a slow
-  // network can't race an early edit into the server before we've reconciled.
-  const pulled = useRef(!isRemoteMode);
-
-  // Initial load: paint instantly from the browser's cached copy, then (in
-  // cloud mode) reconcile with Supabase in the background. The user never waits
-  // on the network to see and use their data.
+  // Initial load: remote when signed in, otherwise the browser's own copy.
   useEffect(() => {
     let cancelled = false;
     async function boot() {
-      // 1) Instant paint from the local cache (kept in sync on every change).
-      const cached = loadLocal();
-      if (cached) {
-        dispatch({ type: 'hydrate', data: cached });
-        // Treat the cache as the sync baseline so it isn't re-pushed as a diff.
-        lastSynced.current = cached;
-      } else if (!isRemoteMode && !localStorage.getItem(FIRST_RUN_KEY)) {
-        // A brand-new local install gets sample content, not five empty columns.
-        localStorage.setItem(FIRST_RUN_KEY, '1');
-        dispatch({ type: 'hydrate', data: seedData() });
-      }
-      if (!cancelled) setReady(true);
-
-      // 2) Cloud mode: fetch the authoritative copy without blocking the UI.
       if (isRemoteMode && userId) {
         setSync('syncing');
         try {
@@ -98,10 +78,22 @@ export function DataProvider({
           if (cancelled) return;
           setSync('error');
           setSyncError(error instanceof Error ? error.message : 'Sync failed');
-        } finally {
-          pulled.current = true;
+          const local = loadLocal();
+          if (local) dispatch({ type: 'hydrate', data: local });
         }
+        if (!cancelled) setReady(true);
+        return;
       }
+
+      const local = loadLocal();
+      if (local) {
+        dispatch({ type: 'hydrate', data: local });
+      } else if (!localStorage.getItem(FIRST_RUN_KEY)) {
+        // A brand-new install gets sample content instead of five empty columns.
+        localStorage.setItem(FIRST_RUN_KEY, '1');
+        dispatch({ type: 'hydrate', data: seedData() });
+      }
+      if (!cancelled) setReady(true);
     }
     void boot();
     return () => {
@@ -121,8 +113,7 @@ export function DataProvider({
     if (pushTimer.current) window.clearTimeout(pushTimer.current);
     pushTimer.current = window.setTimeout(() => {
       void (async () => {
-        // Wait until the initial background pull has set the true baseline.
-        if (pushing.current || !pulled.current) return;
+        if (pushing.current) return;
         const previous = lastSynced.current;
         if (JSON.stringify(previous) === JSON.stringify(data)) return;
         pushing.current = true;
