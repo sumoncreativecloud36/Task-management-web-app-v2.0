@@ -200,7 +200,7 @@ function MainNode({
           aria-selected={mainSelected}
           tabIndex={0}
           className={`tree__main drag-handle${mainDragProps.className ?? ''}`}
-          style={mainSelected ? { background: main.color, borderColor: main.color } : undefined}
+          style={{ background: main.color || 'var(--brand)', borderColor: main.color || 'var(--brand)' }}
           onClick={() => onSelectMain(main.id)}
           onKeyDown={(event) => {
             if (event.key === 'Enter' || event.key === ' ') {
