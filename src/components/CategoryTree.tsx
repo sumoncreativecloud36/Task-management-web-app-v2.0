@@ -215,7 +215,6 @@ function MainNode({
             }
           }}
         >
-          <span className="tree__color" style={{ background: main.color }} aria-hidden="true" />
           <span className="tree__icon" aria-hidden="true">
             {main.icon}
           </span>
