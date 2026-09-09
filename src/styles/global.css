@@ -676,59 +676,36 @@ p {
   flex-direction: column;
 }
 
-/* Every main category is a solid, 100%-opacity coloured button in its own
-   colour — filled inline from `main.color` — so the column reads as a row of
-   buttons. The active one is marked by a crisp inset ring, not by turning the
-   colour on, since the colour is always on. */
+/* A main category is always a boxed, bold header — never a plain row — so the
+   hierarchy is legible at a glance even before anything is selected. */
 .tree__main {
   display: flex;
   align-items: center;
   gap: 9px;
   width: 100%;
-  min-height: 36px;
-  padding: 7px 7px 7px 11px;
-  border-radius: 10px;
-  border: 1px solid transparent;
-  color: var(--on-brand);
+  min-height: 32px;
+  padding: 6px 6px 6px 10px;
+  border-radius: 8px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border-soft);
+  color: var(--text);
   font-size: 13px;
   font-weight: 600;
   letter-spacing: -0.005em;
   text-align: left;
-  /* Premium button: glossy top edge, darker bottom lip, soft drop shadow. */
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.22),
-    0 3px 8px rgba(0, 0, 0, 0.16),
-    inset 0 1px 0 color-mix(in srgb, #fff 24%, transparent),
-    inset 0 -1px 0 color-mix(in srgb, #000 20%, transparent);
-  transition: transform var(--speed) var(--ease), box-shadow var(--speed) var(--ease),
-    filter var(--speed) var(--ease);
+  transition: background var(--speed) var(--ease), border-color var(--speed) var(--ease),
+    box-shadow var(--speed) var(--ease);
   position: relative;
 }
 .tree__main:hover {
-  transform: translateY(-1px);
-  filter: brightness(1.07) saturate(1.04);
-  box-shadow:
-    0 2px 4px rgba(0, 0, 0, 0.24),
-    0 7px 18px rgba(0, 0, 0, 0.22),
-    inset 0 1px 0 color-mix(in srgb, #fff 30%, transparent),
-    inset 0 -1px 0 color-mix(in srgb, #000 20%, transparent);
+  border-color: var(--border);
+  background: var(--surface-hover);
 }
-.tree__main:active {
-  transform: translateY(0);
-  filter: brightness(0.97);
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.2),
-    inset 0 2px 5px color-mix(in srgb, #000 24%, transparent);
-}
-/* Selected reads as the pressed/active button: a crisp ring lifts it off the
-   column plus a deeper shadow. */
 .tree__main[aria-selected='true'] {
+  background: var(--brand);
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--brand));
   color: var(--on-brand);
-  box-shadow:
-    0 0 0 2px var(--bg),
-    0 0 0 4px color-mix(in srgb, var(--on-brand) 65%, transparent),
-    0 5px 16px rgba(0, 0, 0, 0.32),
-    inset 0 1px 0 color-mix(in srgb, #fff 26%, transparent);
+  box-shadow: var(--shadow-sm);
 }
 
 .tree__icon {
@@ -751,15 +728,13 @@ p {
   flex: none;
   font-size: 11px;
   font-weight: 600;
-  /* Sits on the button's own colour, so a translucent white keeps it legible
-     whatever colour the category is. */
-  color: color-mix(in srgb, var(--on-brand) 62%, transparent);
+  color: var(--text-faint);
   font-variant-numeric: tabular-nums;
   min-width: 14px;
   text-align: right;
 }
 .tree__main[aria-selected='true'] .tree__count {
-  color: color-mix(in srgb, var(--on-brand) 80%, transparent);
+  color: color-mix(in srgb, var(--on-brand) 68%, var(--brand));
 }
 
 /* Subcategories nest beneath their main, connected by a guide rail. */
