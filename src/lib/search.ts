@@ -1,3 +1,4 @@
+import { htmlToText } from './richText';
 import { live, pathForTask } from './selectors';
 import type { AppData, EntityKind } from './types';
 
@@ -82,7 +83,7 @@ export function searchAll(data: AppData, query: string, limit = 24): SearchHit[]
   for (const task of live(data.tasks)) {
     const value = Math.max(
       score(task.title, needle),
-      task.description ? score(task.description, needle) - 15 : -1,
+      task.description ? score(htmlToText(task.description), needle) - 15 : -1,
       task.tags.some((tag) => tag.toLowerCase().includes(needle)) ? 45 : -1,
     );
     if (value < 0) continue;
