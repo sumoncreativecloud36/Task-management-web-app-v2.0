@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { DAY_LABELS } from '../lib/date';
 import type { Priority, RepeatMode, Task, WeekdayIndex } from '../lib/types';
 import { Icon } from './Icon';
+import { RichEditor } from './RichEditor';
 
 export interface TaskDraft {
   title: string;
@@ -278,17 +279,13 @@ export function TaskForm({
         />
       </div>
       <div className="field">
-        <label className="field__label" htmlFor="task-notes">
-          Notes
-        </label>
-        {/* Full-width, multi-line so all the note text is visible at once. */}
-        <textarea
-          id="task-notes"
-          className="textarea"
-          rows={3}
-          placeholder="Optional detail — write as much as you need…"
+        <span className="field__label">Notes</span>
+        <RichEditor
           value={draft.description}
-          onChange={(event) => patch({ description: event.target.value })}
+          onChange={(html) => patch({ description: html })}
+          ariaLabel="Task notes"
+          placeholder="Optional detail — steps, links, a checklist…"
+          compact
         />
       </div>
 
