@@ -10,6 +10,7 @@ import { AnalyticsView } from './views/AnalyticsView';
 import { AuthView } from './views/AuthView';
 import { CalendarView } from './views/CalendarView';
 import { DashboardView } from './views/DashboardView';
+import { NotesView } from './views/NotesView';
 import { RecycleBinView } from './views/RecycleBinView';
 import { SettingsView } from './views/SettingsView';
 import { TasksView } from './views/TasksView';
@@ -17,7 +18,7 @@ import { TodayView } from './views/TodayView';
 import { WeekView } from './views/WeekView';
 import type { ViewName } from './lib/types';
 
-const SHORTCUT_VIEWS: ViewName[] = ['today', 'tasks', 'calendar', 'dashboard', 'week', 'analytics'];
+const SHORTCUT_VIEWS: ViewName[] = ['today', 'tasks', 'notes', 'calendar', 'dashboard', 'week', 'analytics'];
 
 function isTypingTarget(target: EventTarget | null): boolean {
   const node = target as HTMLElement | null;
@@ -38,7 +39,8 @@ function Workspace() {
   useEffect(() => {
     document.documentElement.dataset.density = data.settings.density;
     document.documentElement.dataset.reducedMotion = String(data.settings.reducedMotion);
-  }, [data.settings.density, data.settings.reducedMotion]);
+    document.documentElement.dataset.textSize = data.settings.textSize;
+  }, [data.settings.density, data.settings.reducedMotion, data.settings.textSize]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -83,6 +85,7 @@ function Workspace() {
         {view === 'dashboard' && <DashboardView />}
         {view === 'tasks' && <TasksView />}
         {view === 'today' && <TodayView />}
+        {view === 'notes' && <NotesView />}
         {view === 'week' && <WeekView />}
         {view === 'calendar' && <CalendarView />}
         {view === 'analytics' && <AnalyticsView />}
