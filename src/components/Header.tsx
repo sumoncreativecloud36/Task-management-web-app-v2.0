@@ -16,9 +16,13 @@ import { Menu, type MenuItem } from './Menu';
 export const NAV: { view: ViewName; label: string; icon: IconName }[] = [
   { view: 'today', label: 'Today', icon: 'today' },
   { view: 'tasks', label: 'Lists', icon: 'tasks' },
+  { view: 'notes', label: 'Notes', icon: 'notes' },
   { view: 'calendar', label: 'Calendar', icon: 'calendar' },
   { view: 'dashboard', label: 'Insights', icon: 'dashboard' },
 ];
+
+/** The phone bar has room for four tabs around the add button. */
+const BOTTOM: ViewName[] = ['today', 'tasks', 'notes', 'calendar'];
 
 const MORE: { view: ViewName; label: string; icon: IconName }[] = [
   { view: 'week', label: 'Week sheet', icon: 'week' },
@@ -83,6 +87,7 @@ export function Header() {
     { label: userEmail ?? 'Local profile', icon: 'cloud', onSelect: () => setView('settings') },
     // On phones the header nav is replaced by the bottom bar, so the extra
     // screens are reachable from here.
+    { label: 'Insights', icon: 'dashboard', onSelect: () => setView('dashboard') },
     ...moreItems,
     { label: syncLabel, icon: sync === 'error' ? 'alert' : 'check', onSelect: () => setView('settings') },
     { label: 'Settings', icon: 'settings', onSelect: () => setView('settings') },
@@ -176,7 +181,8 @@ export function Header() {
 /** Phone navigation: four tabs around a central "add" button. */
 export function BottomNav() {
   const { view, setView, openQuickAdd } = useUi();
-  const [left, right] = [NAV.slice(0, 2), NAV.slice(2)];
+  const tabs = BOTTOM.map((v) => NAV.find((item) => item.view === v)!);
+  const [left, right] = [tabs.slice(0, 2), tabs.slice(2)];
   const tab = (item: (typeof NAV)[number]) => (
     <button
       key={item.view}
