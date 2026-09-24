@@ -12,18 +12,22 @@ import type { ViewName } from '../lib/types';
 import { Icon, type IconName } from './Icon';
 import { Menu, type MenuItem } from './Menu';
 
-const NAV: { view: ViewName; label: string; icon: IconName }[] = [
-  { view: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
-  { view: 'tasks', label: 'Tasks', icon: 'tasks' },
+/** The four everyday screens; the rest live under "More". */
+export const NAV: { view: ViewName; label: string; icon: IconName }[] = [
   { view: 'today', label: 'Today', icon: 'today' },
-  { view: 'week', label: 'Week', icon: 'week' },
+  { view: 'tasks', label: 'Lists', icon: 'tasks' },
   { view: 'calendar', label: 'Calendar', icon: 'calendar' },
+  { view: 'dashboard', label: 'Insights', icon: 'dashboard' },
+];
+
+const MORE: { view: ViewName; label: string; icon: IconName }[] = [
+  { view: 'week', label: 'Week sheet', icon: 'week' },
   { view: 'analytics', label: 'Analytics', icon: 'analytics' },
 ];
 
 export function Header() {
   const { data, sync, syncError, userEmail, signOut } = useData();
-  const { view, setView, setSearchOpen, revealCategory, theme, toggleTheme } = useUi();
+  const { view, setView, setSearchOpen, revealCategory, theme, toggleTheme, openQuickAdd } = useUi();
 
   const map = useMemo(() => completionMap(data), [data]);
   const overdue = useMemo(() => overdueTasks(data, map), [data, map]);
@@ -69,8 +73,17 @@ export function Header() {
           ? `Sync error: ${syncError ?? 'unknown'}`
           : 'Synced';
 
+  const moreItems: MenuItem[] = MORE.map((item) => ({
+    label: item.label,
+    icon: item.icon,
+    onSelect: () => setView(item.view),
+  }));
+
   const profileItems: MenuItem[] = [
     { label: userEmail ?? 'Local profile', icon: 'cloud', onSelect: () => setView('settings') },
+    // On phones the header nav is replaced by the bottom bar, so the extra
+    // screens are reachable from here.
+    ...moreItems,
     { label: syncLabel, icon: sync === 'error' ? 'alert' : 'check', onSelect: () => setView('settings') },
     { label: 'Settings', icon: 'settings', onSelect: () => setView('settings') },
     {
@@ -105,9 +118,25 @@ export function Header() {
             {item.label}
           </button>
         ))}
+        <Menu
+          label="More screens"
+          items={moreItems}
+          className={`nav__item${MORE.some((m) => m.view === view) ? ' nav__item--on' : ''}`}
+        >
+          <>
+            {MORE.find((m) => m.view === view)?.label ?? 'More'}
+            <Icon name="down" size={12} />
+          </>
+        </Menu>
       </nav>
 
       <div className="header__right">
+        <button type="button" className="btn btn--primary header-add" onClick={() => openQuickAdd()}>
+          <Icon name="plus" size={14} strokeWidth={2.4} />
+          New task
+          <kbd>N</kbd>
+        </button>
+
         <button
           type="button"
           className="search-trigger"
@@ -141,5 +170,32 @@ export function Header() {
         </Menu>
       </div>
     </header>
+  );
+}
+
+/** Phone navigation: four tabs around a central "add" button. */
+export function BottomNav() {
+  const { view, setView, openQuickAdd } = useUi();
+  const [left, right] = [NAV.slice(0, 2), NAV.slice(2)];
+  const tab = (item: (typeof NAV)[number]) => (
+    <button
+      key={item.view}
+      type="button"
+      className="bottom-nav__tab"
+      aria-current={view === item.view ? 'page' : undefined}
+      onClick={() => setView(item.view)}
+    >
+      <Icon name={item.icon} size={20} />
+      <span>{item.label}</span>
+    </button>
+  );
+  return (
+    <nav className="bottom-nav" aria-label="Main">
+      {left.map(tab)}
+      <button type="button" className="bottom-nav__add" onClick={() => openQuickAdd()} aria-label="Add a task">
+        <Icon name="plus" size={24} strokeWidth={2.4} />
+      </button>
+      {right.map(tab)}
+    </nav>
   );
 }
