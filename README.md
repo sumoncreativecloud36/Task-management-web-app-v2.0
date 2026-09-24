@@ -73,7 +73,8 @@ week its due date falls in, so it stops counting against later weeks.
 | `↑` `↓` | Move between rows in a column |
 | `Alt` + `↑` `↓` | Reorder the focused row |
 | `F2` | Rename the focused category |
-| `1`–`6` | Jump to Dashboard … Analytics |
+| `N` | Add a task from anywhere |
+| `1`–`7` | Jump to Today, Lists, Notes, Calendar, Insights, Week, Analytics |
 
 Rows also reorder by drag-and-drop at every level.
 
