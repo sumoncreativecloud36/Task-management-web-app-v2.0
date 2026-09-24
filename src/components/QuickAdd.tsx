@@ -19,14 +19,14 @@ const PRIORITIES: { value: Priority; label: string }[] = [
   { value: 'urgent', label: 'Urgent' },
 ];
 
-interface ListOption {
+export interface ListOption {
   id: string;
   label: string;
   hint: string;
 }
 
 /** Every list a task can live in, as "Category" with its "Main / Sub" path. */
-function listOptions(data: AppData): ListOption[] {
+export function listOptions(data: AppData): ListOption[] {
   const inbox = inboxCategoryId(data);
   const options: ListOption[] = [];
   for (const main of visibleMains(data)) {
