@@ -1,0 +1,13 @@
+{
+  "name": "Task Manager",
+  "short_name": "Tasks",
+  "description": "Simple daily task manager.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#061417",
+  "theme_color": "#092328",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
