@@ -2,13 +2,13 @@ import { useMemo, useState } from 'react';
 import { Empty } from '../components/Empty';
 import { Icon } from '../components/Icon';
 import { Menu } from '../components/Menu';
-import { Modal } from '../components/Modal';
 import { dueLabel, listForHash, readLastList } from '../components/QuickAdd';
-import { TaskForm, draftFromTask, type TaskDraft } from '../components/TaskForm';
+import { TaskDetails } from '../components/TaskDetails';
 import { Tick } from '../components/Tick';
 import { useActions } from '../lib/actions';
 import { addDays, formatLongDate, sameDay, toKey, today, weekdayIndex } from '../lib/date';
 import { parseQuickAdd } from '../lib/quickAdd';
+import { htmlToText } from '../lib/richText';
 import {
   PRIORITY_ORDER,
   completionMap,
@@ -73,7 +73,7 @@ export function TodayView() {
   const [offset, setOffset] = useState(0);
   const [showDone, setShowDone] = useState(false);
   const [text, setText] = useState('');
-  const [editing, setEditing] = useState<{ task: Task; draft: TaskDraft } | null>(null);
+  const [openTask, setOpenTask] = useState<{ id: string; dateKey: string } | null>(null);
 
   const date = useMemo(() => addDays(today(), offset), [offset]);
   const dateKey = toKey(date);
@@ -144,8 +144,8 @@ export function TodayView() {
         <button
           type="button"
           className="day-task__body"
-          onClick={() => setEditing({ task, draft: draftFromTask(task) })}
-          title="Edit task"
+          onClick={() => setOpenTask({ id: task.id, dateKey: tickKey })}
+          title="Open task"
         >
           <span className="day-task__title">{task.title}</span>
           <span className="day-task__meta">
@@ -159,6 +159,11 @@ export function TodayView() {
               </span>
             )}
             {!isOneOff(task) && <Icon name="repeat" size={11} />}
+            {htmlToText(task.description).trim() && (
+              <span className="day-task__info" title="Has notes">
+                <Icon name="notes" size={11} />
+              </span>
+            )}
             {task.estimatedMinutes ? (
               <span className="day-task__info">
                 <Icon name="clock" size={11} />
@@ -191,7 +196,7 @@ export function TodayView() {
         <Menu
           label={`Actions for ${task.title}`}
           items={[
-            { label: 'Edit', icon: 'edit', onSelect: () => setEditing({ task, draft: draftFromTask(task) }) },
+            { label: 'Open', icon: 'edit', onSelect: () => setOpenTask({ id: task.id, dateKey: tickKey }) },
             ...(canMove
               ? [
                   { label: 'Move to today', icon: 'today' as const, onSelect: () => reschedule(task, toKey(today())) },
@@ -365,36 +370,8 @@ export function TodayView() {
         )}
       </div>
 
-      {editing && (
-        <Modal title="Edit task" onClose={() => setEditing(null)}>
-          <TaskForm
-            draft={editing.draft}
-            onChange={(draft) => setEditing({ ...editing, draft })}
-            onSubmit={() => {
-              const d = editing.draft;
-              dispatch({
-                type: 'update',
-                kind: 'task',
-                id: editing.task.id,
-                patch: {
-                  title: d.title,
-                  description: d.description,
-                  priority: d.priority,
-                  dueDate: d.dueDate,
-                  estimatedMinutes: d.estimatedMinutes,
-                  actualMinutes: d.actualMinutes,
-                  repeat: d.repeat,
-                  repeatDays: d.repeatDays,
-                  tags: d.tags,
-                },
-              });
-              setEditing(null);
-            }}
-            onCancel={() => setEditing(null)}
-            submitLabel="Save changes"
-            showActual
-          />
-        </Modal>
+      {openTask && (
+        <TaskDetails taskId={openTask.id} dateKey={openTask.dateKey} onClose={() => setOpenTask(null)} />
       )}
     </div>
   );
