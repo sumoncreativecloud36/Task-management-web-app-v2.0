@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
-import { Header } from './components/Header';
+import { BottomNav, Header } from './components/Header';
+import { QuickAdd } from './components/QuickAdd';
 import { SearchDialog } from './components/SearchDialog';
 import { ToastProvider } from './components/Toast';
 import { isRemoteMode } from './lib/backends/config';
@@ -16,7 +17,7 @@ import { TodayView } from './views/TodayView';
 import { WeekView } from './views/WeekView';
 import type { ViewName } from './lib/types';
 
-const SHORTCUT_VIEWS: ViewName[] = ['dashboard', 'tasks', 'today', 'week', 'calendar', 'analytics'];
+const SHORTCUT_VIEWS: ViewName[] = ['today', 'tasks', 'calendar', 'dashboard', 'week', 'analytics'];
 
 function isTypingTarget(target: EventTarget | null): boolean {
   const node = target as HTMLElement | null;
@@ -30,7 +31,7 @@ function isTypingTarget(target: EventTarget | null): boolean {
 }
 
 function Workspace() {
-  const { view, setView, setSearchOpen } = useUi();
+  const { view, setView, setSearchOpen, openQuickAdd } = useUi();
   const { data, ready } = useData();
 
   // Density and motion are applied on the root so CSS tokens can react to them.
@@ -47,6 +48,12 @@ function Workspace() {
         return;
       }
       if (isTypingTarget(event.target) || event.metaKey || event.ctrlKey || event.altKey) return;
+      if (document.querySelector('[aria-modal="true"]')) return;
+      if (event.key === 'n' || event.key === 'N' || event.key === 'q') {
+        event.preventDefault();
+        openQuickAdd();
+        return;
+      }
       const index = Number(event.key);
       if (index >= 1 && index <= SHORTCUT_VIEWS.length) {
         setView(SHORTCUT_VIEWS[index - 1]);
@@ -54,7 +61,7 @@ function Workspace() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [setSearchOpen, setView]);
+  }, [setSearchOpen, setView, openQuickAdd]);
 
   if (!ready) {
     return (
@@ -82,7 +89,9 @@ function Workspace() {
         {view === 'recycle' && <RecycleBinView />}
         {view === 'settings' && <SettingsView />}
       </main>
+      <BottomNav />
       <SearchDialog />
+      <QuickAdd />
     </div>
   );
 }
