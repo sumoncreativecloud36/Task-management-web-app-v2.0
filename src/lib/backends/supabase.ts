@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { supabaseConfig } from './config';
 import { emptyData, migrate } from '../reducer';
-import type { AppData, Category, MainCategory, Subcategory, Task, TaskCompletion } from '../types';
+import type { AppData, Category, MainCategory, Note, Subcategory, Task, TaskCompletion } from '../types';
 
 let clientPromise: Promise<SupabaseClient> | null = null;
 
@@ -148,8 +148,35 @@ const COLLECTIONS: Collection[] = [
   'completions',
 ];
 
+/**
+ * Notes live in their own table (supabase/migrations/0002_notes.sql). Until that
+ * migration has been run, notes stay on this device only: we keep the cached
+ * copy on pull and skip them on push, so nothing is ever lost or overwritten.
+ */
+let notesTableReady = true;
+export const notesSyncReady = () => notesTableReady;
+
+const noteToRow = (n: Note, userId: string): Row => ({
+  id: n.id,
+  user_id: userId,
+  title: n.title,
+  content: n.content,
+  pinned: n.pinned,
+  created_at: n.createdAt,
+  updated_at: n.updatedAt,
+});
+
+const noteFromRow = (r: Row): Note => ({
+  id: String(r.id),
+  title: String(r.title ?? ''),
+  content: String(r.content ?? ''),
+  pinned: Boolean(r.pinned),
+  createdAt: String(r.created_at ?? new Date().toISOString()),
+  updatedAt: String(r.updated_at ?? new Date().toISOString()),
+});
+
 /** Reads the signed-in user's whole dataset. Volumes here are personal-scale. */
-export async function pullAll(userId: string): Promise<AppData> {
+export async function pullAll(userId: string, cachedNotes: Note[] = []): Promise<AppData> {
   const supabase = await getSupabase();
   const data = emptyData();
 
@@ -166,6 +193,20 @@ export async function pullAll(userId: string): Promise<AppData> {
     .eq('user_id', userId)
     .maybeSingle();
   if (prefs?.settings) data.settings = { ...data.settings, ...(prefs.settings as object) };
+
+  const { data: noteRows, error: notesError } = await supabase.from('notes').select('*');
+  notesTableReady = !notesError;
+  if (notesError) {
+    data.notes = cachedNotes;
+  } else if (!noteRows?.length && cachedNotes.length) {
+    // First sync after the notes table was created: upload what this device
+    // saved while the table didn't exist, rather than wiping it.
+    const { error } = await supabase.from('notes').upsert(cachedNotes.map((n) => noteToRow(n, userId)));
+    if (error) throw new Error(`notes upload: ${error.message}`);
+    data.notes = cachedNotes;
+  } else {
+    data.notes = (noteRows ?? []).map((row) => noteFromRow(row as Row));
+  }
 
   return migrate(data);
 }
@@ -201,6 +242,23 @@ export async function pushDiff(prev: AppData, next: AppData, userId: string): Pr
     if (removals.length) {
       const { error } = await supabase.from(TABLES[collection]).delete().in('id', removals);
       if (error) throw new Error(`${TABLES[collection]} delete: ${error.message}`);
+    }
+  }
+
+  if (notesTableReady) {
+    const before = indexById(prev.notes);
+    const after = indexById(next.notes);
+    const upserts = [...after.values()]
+      .filter((n) => JSON.stringify(before.get(n.id)) !== JSON.stringify(n))
+      .map((n) => noteToRow(n, userId));
+    const removals = [...before.keys()].filter((id) => !after.has(id));
+    if (upserts.length) {
+      const { error } = await supabase.from('notes').upsert(upserts);
+      if (error) throw new Error(`notes upsert: ${error.message}`);
+    }
+    if (removals.length) {
+      const { error } = await supabase.from('notes').delete().in('id', removals);
+      if (error) throw new Error(`notes delete: ${error.message}`);
     }
   }
 
