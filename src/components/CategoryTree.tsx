@@ -22,6 +22,19 @@ const COLOR_CHOICES: { name: string; value: string }[] = [
   { name: 'Rose', value: '#d9566f' },
 ];
 
+/** Dark or light text, whichever reads better on a category's colour. */
+function inkFor(hex: string): string {
+  const match = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!match) return 'var(--on-brand)';
+  const n = parseInt(match[1], 16);
+  const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => {
+    const c = v / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  });
+  const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  return luminance > 0.3 ? '#0b1f1d' : '#f6f8f5';
+}
+
 interface Renaming {
   kind: 'main' | 'sub';
   id: string;
@@ -200,7 +213,12 @@ function MainNode({
           aria-selected={mainSelected}
           tabIndex={0}
           className={`tree__main drag-handle${mainDragProps.className ?? ''}`}
-          style={{ '--cat': main.color || 'var(--brand)' } as React.CSSProperties}
+          style={
+            {
+              '--cat': main.color || 'var(--brand)',
+              '--cat-ink': inkFor(main.color || ''),
+            } as React.CSSProperties
+          }
           onClick={() => onSelectMain(main.id)}
           onKeyDown={(event) => {
             if (event.key === 'Enter' || event.key === ' ') {
