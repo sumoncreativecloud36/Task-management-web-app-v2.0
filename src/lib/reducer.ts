@@ -52,6 +52,8 @@ export type Action =
   | { type: 'addSub'; mainCategoryId: string; name: string }
   | { type: 'addCategory'; subcategoryId: string; name: string }
   | { type: 'addTask'; input: NewTaskInput }
+  /** Quick capture: files into `categoryId`, or the Inbox (created on demand). */
+  | { type: 'addQuickTask'; input: Omit<NewTaskInput, 'categoryId'> & { categoryId?: string | null } }
   | { type: 'duplicateTask'; id: string }
   | { type: 'update'; kind: 'main'; id: string; patch: Partial<MainCategory> }
   | { type: 'update'; kind: 'sub'; id: string; patch: Partial<Subcategory> }
@@ -159,6 +161,50 @@ function purge(data: AppData, kind: EntityKind, id: string): AppData {
   };
 }
 
+export const INBOX_NAME = 'Inbox';
+
+/**
+ * The Inbox is an ordinary Main → Sub → Category chain named "Inbox", so it
+ * syncs and behaves like any other list. Returns its category id, if it exists.
+ */
+export function inboxCategoryId(data: AppData): string | null {
+  const main = data.mainCategories.find((m) => !m.deletedAt && m.name === INBOX_NAME);
+  if (!main) return null;
+  const sub = data.subcategories.find((s) => !s.deletedAt && s.mainCategoryId === main.id);
+  if (!sub) return null;
+  const category = data.categories.find((c) => !c.deletedAt && c.subcategoryId === sub.id);
+  return category?.id ?? null;
+}
+
+function ensureInbox(state: AppData): { state: AppData; categoryId: string } {
+  const existing = inboxCategoryId(state);
+  if (existing) return { state, categoryId: existing };
+
+  let next = state;
+  let main = next.mainCategories.find((m) => !m.deletedAt && m.name === INBOX_NAME);
+  if (!main) {
+    next = reducer(next, { type: 'addMain', name: INBOX_NAME, icon: '📥', color: '#12544F' });
+    main = next.mainCategories[next.mainCategories.length - 1];
+    // The Inbox sits at the top of the category tree.
+    next = reducer(next, { type: 'move', kind: 'main', id: main.id, targetId: visibleFirstMain(next, main.id) });
+  }
+  let sub = next.subcategories.find((s) => !s.deletedAt && s.mainCategoryId === main!.id);
+  if (!sub) {
+    next = reducer(next, { type: 'addSub', mainCategoryId: main.id, name: 'General' });
+    sub = next.subcategories[next.subcategories.length - 1];
+  }
+  next = reducer(next, { type: 'addCategory', subcategoryId: sub.id, name: INBOX_NAME });
+  const category = next.categories[next.categories.length - 1];
+  return { state: next, categoryId: category.id };
+}
+
+function visibleFirstMain(data: AppData, exceptId: string): string | null {
+  const first = data.mainCategories
+    .filter((m) => !m.deletedAt && m.id !== exceptId)
+    .sort((a, b) => a.position - b.position)[0];
+  return first?.id ?? null;
+}
+
 function stamp<T extends { id: string }>(rows: T[], id: string, patch: Partial<T>): T[] {
   return rows.map((row) => (row.id === id ? { ...row, ...patch } : row));
 }
@@ -233,6 +279,16 @@ export function reducer(state: AppData, action: Action): AppData {
         deletedAt: null,
       };
       return { ...state, tasks: [...state.tasks, row] };
+    }
+
+    case 'addQuickTask': {
+      const { categoryId, ...rest } = action.input;
+      const target = categoryId
+        ? state.categories.find((c) => c.id === categoryId && !c.deletedAt)
+        : undefined;
+      if (target) return reducer(state, { type: 'addTask', input: { ...rest, categoryId: target.id } });
+      const inbox = ensureInbox(state);
+      return reducer(inbox.state, { type: 'addTask', input: { ...rest, categoryId: inbox.categoryId } });
     }
 
     case 'duplicateTask': {
