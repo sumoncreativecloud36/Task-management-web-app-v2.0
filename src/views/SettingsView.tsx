@@ -93,6 +93,30 @@ export function SettingsView() {
             <h2 className="card__title">Interface</h2>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div className="field">
+              <span className="field__label">Text size</span>
+              <div className="size-picks" role="radiogroup" aria-label="Text size">
+                {(
+                  [
+                    ['normal', 'Normal'],
+                    ['large', 'Large'],
+                    ['xlarge', 'Extra large'],
+                  ] as const
+                ).map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    role="radio"
+                    aria-checked={settings.textSize === value}
+                    className={`size-pick size-pick--${value}`}
+                    onClick={() => dispatch({ type: 'setSettings', patch: { textSize: value } })}
+                  >
+                    <span className="size-pick__aa">Aa</span>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
             <Toggle
               label="Show the weekly grid on task rows"
               hint="Saturday to Friday checkboxes inline in the Tasks column."
@@ -255,7 +279,8 @@ export function SettingsView() {
               ['↑ ↓', 'Move between rows in a column'],
               ['Alt + ↑ ↓', 'Reorder the focused row'],
               ['F2', 'Rename the focused category'],
-              ['1 – 6', 'Jump to Dashboard … Analytics'],
+              ['N', 'Add a task from anywhere'],
+              ['1 – 7', 'Jump to Today, Lists, Notes, Calendar, Insights, Week, Analytics'],
             ].map(([keys, what]) => (
               <li
                 key={keys}
