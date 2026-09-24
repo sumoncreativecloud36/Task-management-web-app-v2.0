@@ -5,6 +5,7 @@ import type {
   Category,
   EntityKind,
   MainCategory,
+  Note,
   Priority,
   RepeatMode,
   Subcategory,
@@ -16,6 +17,7 @@ import type {
 export const DATA_VERSION = 1;
 
 export const DEFAULT_SETTINGS: AppData['settings'] = {
+  textSize: 'large',
   reducedMotion: false,
   showWeekGrid: true,
   hideCompleted: false,
@@ -30,6 +32,7 @@ export function emptyData(): AppData {
     categories: [],
     tasks: [],
     completions: [],
+    notes: [],
     settings: { ...DEFAULT_SETTINGS },
   };
 }
@@ -67,6 +70,10 @@ export type Action =
   | { type: 'setCompletion'; taskId: string; dateKey: string; completed: boolean }
   | { type: 'toggleCompletion'; taskId: string; dateKey: string }
   | { type: 'setSettings'; patch: Partial<AppData['settings']> }
+  | { type: 'addNote'; id: string; title?: string; content?: string }
+  | { type: 'updateNote'; id: string; patch: Partial<Pick<Note, 'title' | 'content' | 'pinned'>> }
+  | { type: 'deleteNote'; id: string }
+  | { type: 'restoreNote'; note: Note }
   | { type: 'reset'; data?: AppData };
 
 const COLLECTION: Record<EntityKind, keyof Pick<
@@ -394,6 +401,32 @@ export function reducer(state: AppData, action: Action): AppData {
     case 'setSettings':
       return { ...state, settings: { ...state.settings, ...action.patch } };
 
+    case 'addNote': {
+      const note: Note = {
+        id: action.id,
+        title: action.title ?? '',
+        content: action.content ?? '',
+        pinned: false,
+        createdAt: now,
+        updatedAt: now,
+      };
+      return { ...state, notes: [note, ...state.notes] };
+    }
+
+    case 'updateNote':
+      return {
+        ...state,
+        notes: state.notes.map((n) => (n.id === action.id ? { ...n, ...action.patch, updatedAt: now } : n)),
+      };
+
+    case 'deleteNote':
+      return { ...state, notes: state.notes.filter((n) => n.id !== action.id) };
+
+    case 'restoreNote':
+      return state.notes.some((n) => n.id === action.note.id)
+        ? state
+        : { ...state, notes: [action.note, ...state.notes] };
+
     default:
       return state;
   }
@@ -420,6 +453,12 @@ export function migrate(raw: unknown): AppData {
       updatedAt: r.updatedAt ?? r.createdAt ?? new Date().toISOString(),
     })),
     completions: input.completions ?? [],
+    notes: (input.notes ?? []).map((n) => ({
+      ...n,
+      title: n.title ?? '',
+      content: n.content ?? '',
+      pinned: Boolean(n.pinned),
+    })),
     settings: { ...base.settings, ...(input.settings ?? {}) },
   };
   return data;
