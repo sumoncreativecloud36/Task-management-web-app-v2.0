@@ -59,7 +59,21 @@ export interface TaskCompletion {
   completedAt: string | null;
 }
 
+/** A free-form document in the Notes tab. `content` is sanitised HTML. */
+export interface Note {
+  id: string;
+  title: string;
+  content: string;
+  pinned: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type TextSize = 'normal' | 'large' | 'xlarge';
+
 export interface Settings {
+  /** Scales every font in the app. */
+  textSize: TextSize;
   /** Reduce motion for users who prefer it, overriding the OS hint. */
   reducedMotion: boolean;
   /** Show the weekly Sat→Fri grid inline on every task row. */
@@ -77,6 +91,7 @@ export interface AppData {
   categories: Category[];
   tasks: Task[];
   completions: TaskCompletion[];
+  notes: Note[];
   settings: Settings;
 }
 
@@ -84,6 +99,7 @@ export type ViewName =
   | 'dashboard'
   | 'tasks'
   | 'today'
+  | 'notes'
   | 'week'
   | 'calendar'
   | 'analytics'
