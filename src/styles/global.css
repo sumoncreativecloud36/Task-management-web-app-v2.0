@@ -685,27 +685,27 @@ p {
   width: 100%;
   min-height: 32px;
   padding: 6px 6px 6px 10px;
-  border-radius: 8px;
-  background: var(--surface-raised);
-  border: 1px solid var(--border-soft);
-  color: var(--text);
+  border-radius: 10px;
+  /* Every main is always filled with its own color (--cat, set inline) so the
+     top-level categories stand out as buttons whatever is selected. */
+  background: var(--cat, var(--brand));
+  border: 1px solid var(--cat, var(--brand));
+  color: var(--on-brand);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: -0.005em;
   text-align: left;
+  box-shadow: var(--shadow-sm);
   transition: background var(--speed) var(--ease), border-color var(--speed) var(--ease),
-    box-shadow var(--speed) var(--ease);
+    box-shadow var(--speed) var(--ease), filter var(--speed) var(--ease);
   position: relative;
 }
 .tree__main:hover {
-  border-color: var(--border);
-  background: var(--surface-hover);
+  filter: brightness(1.08);
 }
+/* The active main keeps the same fill and gains a ring in its own color. */
 .tree__main[aria-selected='true'] {
-  background: var(--brand);
-  border-color: color-mix(in srgb, var(--accent) 45%, var(--brand));
-  color: var(--on-brand);
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--cat, var(--brand)), var(--shadow-sm);
 }
 
 .tree__icon {
@@ -733,8 +733,22 @@ p {
   min-width: 14px;
   text-align: right;
 }
-.tree__main[aria-selected='true'] .tree__count {
-  color: color-mix(in srgb, var(--on-brand) 68%, var(--brand));
+.tree__main .tree__count {
+  color: color-mix(in srgb, var(--on-brand) 72%, var(--cat, var(--brand)));
+}
+.tree__main .icon-btn {
+  color: color-mix(in srgb, var(--on-brand) 80%, var(--cat, var(--brand)));
+}
+.tree__main .icon-btn:hover {
+  background: color-mix(in srgb, #000 16%, transparent);
+  color: var(--on-brand);
+}
+.tree__main .icon-btn {
+  color: color-mix(in srgb, var(--on-brand) 80%, var(--cat, var(--brand)));
+}
+.tree__main .icon-btn:hover {
+  background: color-mix(in srgb, #000 16%, transparent);
+  color: var(--on-brand);
 }
 
 /* Subcategories nest beneath their main, connected by a guide rail. */
