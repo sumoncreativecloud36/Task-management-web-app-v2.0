@@ -41,6 +41,17 @@ interface UiContextValue {
   setMobileColumn: (index: number) => void;
   searchOpen: boolean;
   setSearchOpen: (open: boolean) => void;
+  /** Quick Add sheet: null when closed, otherwise its starting values. */
+  quickAdd: QuickAddOptions | null;
+  openQuickAdd: (options?: QuickAddOptions) => void;
+  closeQuickAdd: () => void;
+}
+
+export interface QuickAddOptions {
+  /** 'YYYY-MM-DD', or null for "no date". Defaults to today. */
+  date?: string | null;
+  /** List to file into. Defaults to the last list used, else the Inbox. */
+  categoryId?: string | null;
 }
 
 const UiContext = createContext<UiContextValue | null>(null);
@@ -51,7 +62,8 @@ export function useUi(): UiContextValue {
   return context;
 }
 
-const VIEW_KEY = 'taskmanager.view';
+// v2: the app now opens on Today; the new key lets existing users land there once.
+const VIEW_KEY = 'taskmanager.view.v2';
 const THEME_KEY = 'taskmanager.theme';
 
 function initialTheme(): Theme {
@@ -67,9 +79,13 @@ function initialTheme(): Theme {
 
 export function UiProvider({ children }: { children: ReactNode }) {
   const { data, ready } = useData();
-  const [view, setViewState] = useState<ViewName>(
-    () => (localStorage.getItem(VIEW_KEY) as ViewName | null) ?? 'tasks',
-  );
+  const [view, setViewState] = useState<ViewName>(() => {
+    try {
+      return (localStorage.getItem(VIEW_KEY) as ViewName | null) ?? 'today';
+    } catch {
+      return 'today';
+    }
+  });
   const [theme, setTheme] = useState<Theme>(initialTheme);
 
   // Drive the palette from a data-theme attribute on the root element.
@@ -93,10 +109,17 @@ export function UiProvider({ children }: { children: ReactNode }) {
   const [weekCursor, setWeekCursorState] = useState<Date>(() => startOfWeek(today()));
   const [mobileColumn, setMobileColumn] = useState(0);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [quickAdd, setQuickAdd] = useState<QuickAddOptions | null>(null);
+  const openQuickAdd = useCallback((options?: QuickAddOptions) => setQuickAdd(options ?? {}), []);
+  const closeQuickAdd = useCallback(() => setQuickAdd(null), []);
 
   const setView = useCallback((next: ViewName) => {
     setViewState(next);
-    localStorage.setItem(VIEW_KEY, next);
+    try {
+      localStorage.setItem(VIEW_KEY, next);
+    } catch {
+      /* ignore */
+    }
   }, []);
 
   // Keep the selection valid: pick the first row of each column, and drop
@@ -196,6 +219,9 @@ export function UiProvider({ children }: { children: ReactNode }) {
       setMobileColumn,
       searchOpen,
       setSearchOpen,
+      quickAdd,
+      openQuickAdd,
+      closeQuickAdd,
     }),
     [
       view,
@@ -214,6 +240,9 @@ export function UiProvider({ children }: { children: ReactNode }) {
       setWeekCursor,
       mobileColumn,
       searchOpen,
+      quickAdd,
+      openQuickAdd,
+      closeQuickAdd,
     ],
   );
 
