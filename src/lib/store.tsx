@@ -86,7 +86,7 @@ export function DataProvider({
       if (isRemoteMode && userId) {
         setSync('syncing');
         try {
-          const remote = await pullAll(userId);
+          const remote = await pullAll(userId, cached?.notes ?? []);
           if (cancelled) return;
           lastSynced.current = remote;
           dispatch({ type: 'hydrate', data: remote });
