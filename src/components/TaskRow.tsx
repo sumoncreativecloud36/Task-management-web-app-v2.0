@@ -20,6 +20,7 @@ import { Icon } from './Icon';
 import { Menu } from './Menu';
 import { Tick } from './Tick';
 import { TaskForm, draftFromTask, type TaskDraft } from './TaskForm';
+import { htmlToText, toEditorHtml } from '../lib/richText';
 
 interface TaskRowProps {
   task: Task;
@@ -108,7 +109,7 @@ export function TaskRow({
             className="task-row__title"
             onClick={() => setExpanded((value) => !value)}
             aria-expanded={expanded}
-            title={task.description || task.title}
+            title={htmlToText(task.description) || task.title}
           >
             {task.title}
           </button>
@@ -137,7 +138,7 @@ export function TaskRow({
               </span>
             ) : null}
             {task.description && (
-              <span className="chip" title={task.description}>
+              <span className="chip" title={htmlToText(task.description)}>
                 <Icon name="note" size={10} />
               </span>
             )}
@@ -210,7 +211,13 @@ export function TaskRow({
 
       {expanded && (
         <div className="task-detail">
-          {task.description && <p style={{ fontSize: 13, color: 'var(--text-dim)' }}>{task.description}</p>}
+          {task.description && (
+            <div
+              className="rte-view"
+              // Stored notes are sanitised to a small tag allow-list before rendering.
+              dangerouslySetInnerHTML={{ __html: toEditorHtml(task.description) }}
+            />
+          )}
           <div className="detail-facts">
             <span className="chip">
               <Icon name="flag" size={10} /> {task.priority}
