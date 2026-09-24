@@ -36,7 +36,18 @@ export type IconName =
   | 'cloud'
   | 'sun'
   | 'moon'
-  | 'folder';
+  | 'folder'
+  | 'notes'
+  | 'pin'
+  | 'highlight'
+  | 'listBullet'
+  | 'listNumber'
+  | 'checklist'
+  | 'quote'
+  | 'link'
+  | 'eraser'
+  | 'undo'
+  | 'redo';
 
 const PATHS: Record<IconName, string> = {
   dashboard: 'M4 4h7v7H4zM13 4h7v4h-7zM13 10h7v10h-7zM4 13h7v7H4z',
@@ -78,6 +89,17 @@ const PATHS: Record<IconName, string> = {
   sun: 'M12 16.5a4.5 4.5 0 100-9 4.5 4.5 0 000 9zM12 2v2.5M12 19.5V22M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2 12h2.5M19.5 12H22M4.2 19.8L6 18M18 6l1.8-1.8',
   moon: 'M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z',
   folder: 'M3 6h6l2 2.5h10V19H3z',
+  notes: 'M6 3h9l4 4v14H6zM14 3v5h5M9 12h7M9 16h5',
+  pin: 'M9 4h6l-1 5 3 3H7l3-3-1-5zM12 12v8',
+  highlight: 'M4 20h7M14.5 4.5l5 5L11 18H6v-5l8.5-8.5z',
+  listBullet: 'M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01',
+  listNumber: 'M10 6h10M10 12h10M10 18h10M4 4.5h1.5V9M4 9h3M4 14.5a1.5 1.5 0 013 .5L4 19h3',
+  checklist: 'M11 6h9M11 12h9M11 18h9M3.5 5.5l1.5 1.5 3-3M3.5 11.5l1.5 1.5 3-3M4 17h4v3H4z',
+  quote: 'M5 18c2-1 3-3 3-6H4V6h6v6c0 4-2 6.5-5 7.5M15 18c2-1 3-3 3-6h-4V6h6v6c0 4-2 6.5-5 7.5',
+  link: 'M10 14a4.5 4.5 0 006.4 0l3-3a4.5 4.5 0 00-6.4-6.4l-1 1M14 10a4.5 4.5 0 00-6.4 0l-3 3a4.5 4.5 0 006.4 6.4l1-1',
+  eraser: 'M8 20h12M5.5 14.5L14 6l5 5-8.5 8.5H8l-2.5-2.5a1.5 1.5 0 010-2.5zM10 10l5 5',
+  undo: 'M9 14L4 9l5-5M4 9h10a6 6 0 010 12h-3',
+  redo: 'M15 14l5-5-5-5M20 9H10a6 6 0 000 12h3',
 };
 
 export function Icon({
