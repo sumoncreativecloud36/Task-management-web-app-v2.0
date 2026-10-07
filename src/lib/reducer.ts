@@ -70,10 +70,10 @@ export type Action =
   | { type: 'setCompletion'; taskId: string; dateKey: string; completed: boolean }
   | { type: 'toggleCompletion'; taskId: string; dateKey: string }
   | { type: 'setSettings'; patch: Partial<AppData['settings']> }
-  | { type: 'addNote'; id: string; title?: string; content?: string }
+  | { type: 'addNote'; id: string; parentId?: string | null; title?: string; content?: string }
   | { type: 'updateNote'; id: string; patch: Partial<Pick<Note, 'title' | 'content' | 'pinned'>> }
   | { type: 'deleteNote'; id: string }
-  | { type: 'restoreNote'; note: Note }
+  | { type: 'restoreNotes'; notes: Note[] }
   | { type: 'reset'; data?: AppData };
 
 const COLLECTION: Record<EntityKind, keyof Pick<
@@ -407,6 +407,7 @@ export function reducer(state: AppData, action: Action): AppData {
         title: action.title ?? '',
         content: action.content ?? '',
         pinned: false,
+        parentId: action.parentId ?? null,
         createdAt: now,
         updatedAt: now,
       };
@@ -419,17 +420,37 @@ export function reducer(state: AppData, action: Action): AppData {
         notes: state.notes.map((n) => (n.id === action.id ? { ...n, ...action.patch, updatedAt: now } : n)),
       };
 
-    case 'deleteNote':
-      return { ...state, notes: state.notes.filter((n) => n.id !== action.id) };
+    case 'deleteNote': {
+      // A note takes its sub-notes with it.
+      const doomed = noteFamily(state.notes, action.id);
+      return { ...state, notes: state.notes.filter((n) => !doomed.has(n.id)) };
+    }
 
-    case 'restoreNote':
-      return state.notes.some((n) => n.id === action.note.id)
-        ? state
-        : { ...state, notes: [action.note, ...state.notes] };
+    case 'restoreNotes': {
+      const present = new Set(state.notes.map((n) => n.id));
+      const back = action.notes.filter((n) => !present.has(n.id));
+      return back.length ? { ...state, notes: [...back, ...state.notes] } : state;
+    }
 
     default:
       return state;
   }
+}
+
+/** The ids of a note and every note nested beneath it. */
+export function noteFamily(notes: Note[], id: string): Set<string> {
+  const family = new Set([id]);
+  let grew = true;
+  while (grew) {
+    grew = false;
+    for (const n of notes) {
+      if (n.parentId && family.has(n.parentId) && !family.has(n.id)) {
+        family.add(n.id);
+        grew = true;
+      }
+    }
+  }
+  return family;
 }
 
 /** Fills in fields added by later versions so old saves keep working. */
@@ -458,6 +479,7 @@ export function migrate(raw: unknown): AppData {
       title: n.title ?? '',
       content: n.content ?? '',
       pinned: Boolean(n.pinned),
+      parentId: n.parentId ?? null,
     })),
     settings: { ...base.settings, ...(input.settings ?? {}) },
   };
