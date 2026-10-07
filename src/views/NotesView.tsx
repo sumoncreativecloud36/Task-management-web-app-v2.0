@@ -9,35 +9,68 @@ import { formatRelative } from '../lib/date';
 import { uid } from '../lib/id';
 import { htmlToText } from '../lib/richText';
 import { useActions } from '../lib/actions';
+import { noteFamily } from '../lib/reducer';
 import { useData } from '../lib/store';
 import type { Note } from '../lib/types';
 
 const OPEN_KEY = 'taskmanager.openNote';
+const FOLDED_KEY = 'taskmanager.foldedNotes';
+const SIDE_KEY = 'taskmanager.notesSideHidden';
 
-function readOpen(): string | null {
+function read(key: string): string | null {
   try {
-    return localStorage.getItem(OPEN_KEY);
+    return localStorage.getItem(key);
   } catch {
     return null;
+  }
+}
+
+function save(key: string, value: string) {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    /* ignore */
+  }
+}
+
+function readFolded(): Set<string> {
+  try {
+    return new Set(JSON.parse(read(FOLDED_KEY) ?? '[]') as string[]);
+  } catch {
+    return new Set();
   }
 }
 
 const sortNotes = (a: Note, b: Note) =>
   Number(b.pinned) - Number(a.pinned) || (a.updatedAt < b.updatedAt ? 1 : -1);
 
-/** Documents: a searchable list on the left, a full page editor on the right. */
+/** Documents: a searchable outline of notes and sub-notes on the left, a full page editor on the right. */
 export function NotesView() {
   const { data, dispatch } = useData();
   const { notify } = useActions();
   const [query, setQuery] = useState('');
-  const [openId, setOpenId] = useState<string | null>(readOpen);
+  const [openId, setOpenId] = useState<string | null>(() => read(OPEN_KEY));
   // Phones show either the list or the page.
   const [mobilePage, setMobilePage] = useState(false);
+  const [folded, setFolded] = useState(readFolded);
+  const [sideHidden, setSideHidden] = useState(() => read(SIDE_KEY) === '1');
 
   const notes = useMemo(() => data.notes.slice().sort(sortNotes), [data.notes]);
-  const filtered = useMemo(() => {
+
+  // Sub-notes grouped under their parent; a note whose parent is gone shows at the top level.
+  const children = useMemo(() => {
+    const ids = new Set(notes.map((n) => n.id));
+    const map = new Map<string | null, Note[]>();
+    for (const n of notes) {
+      const parent = n.parentId && ids.has(n.parentId) ? n.parentId : null;
+      map.set(parent, [...(map.get(parent) ?? []), n]);
+    }
+    return map;
+  }, [notes]);
+
+  const matches = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return notes;
+    if (!q) return null;
     return notes.filter(
       (n) => n.title.toLowerCase().includes(q) || htmlToText(n.content).toLowerCase().includes(q),
     );
@@ -48,39 +81,84 @@ export function NotesView() {
   const select = useCallback((id: string | null) => {
     setOpenId(id);
     setMobilePage(Boolean(id));
-    try {
-      if (id) localStorage.setItem(OPEN_KEY, id);
-    } catch {
-      /* ignore */
-    }
+    if (id) save(OPEN_KEY, id);
   }, []);
 
-  const create = () => {
+  const setFold = (id: string, fold: boolean) =>
+    setFolded((prev) => {
+      const next = new Set(prev);
+      if (fold) next.add(id);
+      else next.delete(id);
+      save(FOLDED_KEY, JSON.stringify([...next]));
+      return next;
+    });
+
+  const toggleSide = () =>
+    setSideHidden((hidden) => {
+      save(SIDE_KEY, hidden ? '0' : '1');
+      return !hidden;
+    });
+
+  const create = (parentId: string | null = null) => {
     const id = uid();
-    dispatch({ type: 'addNote', id });
+    dispatch({ type: 'addNote', id, parentId });
+    if (parentId) setFold(parentId, false);
     setQuery('');
     select(id);
   };
 
   const remove = (note: Note) => {
+    const family = noteFamily(data.notes, note.id);
+    const removed = data.notes.filter((n) => family.has(n.id));
+    const subs = removed.length - 1;
     dispatch({ type: 'deleteNote', id: note.id });
-    notify(`Deleted “${note.title || 'Untitled'}”`, {
-      label: 'Undo',
-      run: () => dispatch({ type: 'restoreNote', note }),
-    });
+    notify(
+      `Deleted “${note.title || 'Untitled'}”${subs ? ` and ${subs} sub-note${subs === 1 ? '' : 's'}` : ''}`,
+      { label: 'Undo', run: () => dispatch({ type: 'restoreNotes', notes: removed }) },
+    );
     setMobilePage(false);
   };
+
+  const renderTree = (parentId: string | null, depth: number) =>
+    (children.get(parentId) ?? []).map((note) => {
+      const kids = children.get(note.id);
+      const isFolded = folded.has(note.id);
+      return (
+        <li key={note.id}>
+          <NoteRow
+            note={note}
+            depth={depth}
+            current={open?.id === note.id}
+            hasKids={Boolean(kids)}
+            folded={isFolded}
+            onSelect={() => select(note.id)}
+            onToggle={() => setFold(note.id, !isFolded)}
+            onAddSub={() => create(note.id)}
+          />
+          {kids && !isFolded && <ul className="note-tree">{renderTree(note.id, depth + 1)}</ul>}
+        </li>
+      );
+    });
 
   const localOnly = isRemoteMode && !notesSyncReady();
 
   return (
-    <div className="notes" data-page={mobilePage ? 'true' : 'false'}>
+    <div className="notes" data-page={mobilePage ? 'true' : 'false'} data-side={sideHidden ? 'hidden' : 'shown'}>
       <aside className="notes__side">
         <div className="notes__side-head">
           <h1 className="notes__heading">Notes</h1>
-          <button type="button" className="btn btn--primary btn--sm" onClick={create}>
+          <button type="button" className="btn btn--primary btn--sm" onClick={() => create()}>
             <Icon name="plus" size={14} strokeWidth={2.4} />
             New note
+          </button>
+          <button
+            type="button"
+            className="icon-btn notes__side-toggle"
+            aria-label="Close sidebar"
+            title="Close sidebar"
+            onClick={toggleSide}
+          >
+            <Icon name="sidebarClose" size={18} />
           </button>
         </div>
         <label className="notes__search">
@@ -94,32 +172,25 @@ export function NotesView() {
         </label>
 
         <ul className="notes__list scroll">
-          {filtered.map((note) => {
-            const preview = htmlToText(note.content).replace(/\s+/g, ' ').slice(0, 90);
-            return (
-              <li key={note.id}>
-                <button
-                  type="button"
-                  className="note-item"
-                  aria-current={open?.id === note.id ? 'true' : undefined}
-                  onClick={() => select(note.id)}
-                >
-                  <span className="note-item__title">
-                    {note.pinned && <Icon name="pin" size={12} />}
-                    {note.title || 'Untitled'}
-                  </span>
-                  <span className="note-item__preview">{preview || 'No content yet'}</span>
-                  <span className="note-item__time">{formatRelative(note.updatedAt)}</span>
-                </button>
-              </li>
-            );
-          })}
+          {matches
+            ? matches.map((note) => (
+                <li key={note.id}>
+                  <NoteRow
+                    note={note}
+                    depth={0}
+                    current={open?.id === note.id}
+                    onSelect={() => select(note.id)}
+                    onAddSub={() => create(note.id)}
+                  />
+                </li>
+              ))
+            : renderTree(null, 0)}
           {notes.length === 0 && (
             <li>
               <Empty icon="notes" text="No notes yet. Tap “New note” to start writing." />
             </li>
           )}
-          {notes.length > 0 && filtered.length === 0 && (
+          {matches && notes.length > 0 && matches.length === 0 && (
             <li>
               <Empty icon="search" text={`No notes match “${query}”.`} />
             </li>
@@ -136,13 +207,21 @@ export function NotesView() {
 
       <section className="notes__main scroll">
         {open ? (
-          <NotePage key={open.id} note={open} onBack={() => setMobilePage(false)} onDelete={() => remove(open)} />
+          <NotePage
+            key={open.id}
+            note={open}
+            sideHidden={sideHidden}
+            onShowSide={toggleSide}
+            onBack={() => setMobilePage(false)}
+            onAddSub={() => create(open.id)}
+            onDelete={() => remove(open)}
+          />
         ) : (
           <Empty
             icon="notes"
             text="Write anything — plans, ideas, meeting notes, journals. Headings, lists and checklists included."
             actionLabel="Create your first note"
-            onAction={create}
+            onAction={() => create()}
             pad
           />
         )}
@@ -151,7 +230,78 @@ export function NotesView() {
   );
 }
 
-function NotePage({ note, onBack, onDelete }: { note: Note; onBack: () => void; onDelete: () => void }) {
+/** One line in the sidebar: fold arrow, title, and a quick “add sub-note” button. */
+function NoteRow({
+  note,
+  depth,
+  current,
+  hasKids = false,
+  folded = false,
+  onSelect,
+  onToggle,
+  onAddSub,
+}: {
+  note: Note;
+  depth: number;
+  current: boolean;
+  hasKids?: boolean;
+  folded?: boolean;
+  onSelect: () => void;
+  onToggle?: () => void;
+  onAddSub: () => void;
+}) {
+  const title = note.title || 'Untitled';
+  return (
+    <div
+      className="note-item"
+      aria-current={current ? 'true' : undefined}
+      style={{ ['--depth' as string]: depth }}
+    >
+      {hasKids && onToggle ? (
+        <button
+          type="button"
+          className="note-item__fold"
+          aria-expanded={!folded}
+          aria-label={folded ? `Expand ${title}` : `Collapse ${title}`}
+          onClick={onToggle}
+        >
+          <Icon name={folded ? 'right' : 'down'} size={14} strokeWidth={2.2} />
+        </button>
+      ) : (
+        <span className="note-item__fold" aria-hidden="true" />
+      )}
+      <button type="button" className="note-item__title" onClick={onSelect} title={title}>
+        {note.pinned && <Icon name="pin" size={12} />}
+        <span>{title}</span>
+      </button>
+      <button
+        type="button"
+        className="note-item__add"
+        aria-label={`Add sub-note to ${title}`}
+        title="Add sub-note"
+        onClick={onAddSub}
+      >
+        <Icon name="plus" size={14} strokeWidth={2.2} />
+      </button>
+    </div>
+  );
+}
+
+function NotePage({
+  note,
+  sideHidden,
+  onShowSide,
+  onBack,
+  onAddSub,
+  onDelete,
+}: {
+  note: Note;
+  sideHidden: boolean;
+  onShowSide: () => void;
+  onBack: () => void;
+  onAddSub: () => void;
+  onDelete: () => void;
+}) {
   const { dispatch } = useData();
   const [title, setTitle] = useState(note.title);
   const [content, setContent] = useState(note.content);
@@ -183,6 +333,17 @@ function NotePage({ note, onBack, onDelete }: { note: Note; onBack: () => void; 
   return (
     <article className="note-page">
       <div className="note-page__bar">
+        {sideHidden && (
+          <button
+            type="button"
+            className="icon-btn note-page__show-side"
+            aria-label="Open sidebar"
+            title="Open sidebar"
+            onClick={onShowSide}
+          >
+            <Icon name="sidebarOpen" size={18} />
+          </button>
+        )}
         <button type="button" className="btn btn--quiet btn--sm note-page__back" onClick={onBack}>
           <Icon name="left" size={14} />
           Notes
@@ -204,6 +365,7 @@ function NotePage({ note, onBack, onDelete }: { note: Note; onBack: () => void; 
           label="Note actions"
           className="icon-btn"
           items={[
+            { label: 'Add sub-note', icon: 'plus', onSelect: onAddSub },
             { label: note.pinned ? 'Unpin' : 'Pin to top', icon: 'pin', onSelect: () => dispatch({ type: 'updateNote', id: note.id, patch: { pinned: !note.pinned } }) },
             { label: 'Delete note', icon: 'trash', danger: true, onSelect: onDelete },
           ]}
