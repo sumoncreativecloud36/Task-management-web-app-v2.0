@@ -47,7 +47,9 @@ export type IconName =
   | 'link'
   | 'eraser'
   | 'undo'
-  | 'redo';
+  | 'redo'
+  | 'sidebarClose'
+  | 'sidebarOpen';
 
 const PATHS: Record<IconName, string> = {
   dashboard: 'M4 4h7v7H4zM13 4h7v4h-7zM13 10h7v10h-7zM4 13h7v7H4z',
@@ -100,6 +102,8 @@ const PATHS: Record<IconName, string> = {
   eraser: 'M8 20h12M5.5 14.5L14 6l5 5-8.5 8.5H8l-2.5-2.5a1.5 1.5 0 010-2.5zM10 10l5 5',
   undo: 'M9 14L4 9l5-5M4 9h10a6 6 0 010 12h-3',
   redo: 'M15 14l5-5-5-5M20 9H10a6 6 0 000 12h3',
+  sidebarClose: 'M4 4h16v16H4zM9 4v16M16 9l-3 3 3 3',
+  sidebarOpen: 'M4 4h16v16H4zM9 4v16M13 9l3 3-3 3',
 };
 
 export function Icon({
