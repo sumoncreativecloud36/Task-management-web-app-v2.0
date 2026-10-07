@@ -65,6 +65,8 @@ export interface Note {
   title: string;
   content: string;
   pinned: boolean;
+  /** The note this one sits under in the sidebar, or null for a top-level note. */
+  parentId: string | null;
   createdAt: string;
   updatedAt: string;
 }
