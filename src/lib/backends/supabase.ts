@@ -156,12 +156,19 @@ const COLLECTIONS: Collection[] = [
 let notesTableReady = true;
 export const notesSyncReady = () => notesTableReady;
 
+/**
+ * Sub-notes need the parent_id column (supabase/migrations/0003_note_parents.sql).
+ * Without it, nesting is kept from this device's cache instead of being synced.
+ */
+let noteParentsReady = true;
+
 const noteToRow = (n: Note, userId: string): Row => ({
   id: n.id,
   user_id: userId,
   title: n.title,
   content: n.content,
   pinned: n.pinned,
+  ...(noteParentsReady ? { parent_id: n.parentId } : {}),
   created_at: n.createdAt,
   updated_at: n.updatedAt,
 });
@@ -171,6 +178,7 @@ const noteFromRow = (r: Row): Note => ({
   title: String(r.title ?? ''),
   content: String(r.content ?? ''),
   pinned: Boolean(r.pinned),
+  parentId: r.parent_id ? String(r.parent_id) : null,
   createdAt: String(r.created_at ?? new Date().toISOString()),
   updatedAt: String(r.updated_at ?? new Date().toISOString()),
 });
@@ -196,6 +204,10 @@ export async function pullAll(userId: string, cachedNotes: Note[] = []): Promise
 
   const { data: noteRows, error: notesError } = await supabase.from('notes').select('*');
   notesTableReady = !notesError;
+  if (notesTableReady) {
+    const { error } = await supabase.from('notes').select('parent_id').limit(1);
+    noteParentsReady = !error;
+  }
   if (notesError) {
     data.notes = cachedNotes;
   } else if (!noteRows?.length && cachedNotes.length) {
@@ -206,6 +218,10 @@ export async function pullAll(userId: string, cachedNotes: Note[] = []): Promise
     data.notes = cachedNotes;
   } else {
     data.notes = (noteRows ?? []).map((row) => noteFromRow(row as Row));
+    if (!noteParentsReady) {
+      const cachedParents = new Map(cachedNotes.map((n) => [n.id, n.parentId ?? null]));
+      data.notes = data.notes.map((n) => ({ ...n, parentId: cachedParents.get(n.id) ?? null }));
+    }
   }
 
   return migrate(data);
